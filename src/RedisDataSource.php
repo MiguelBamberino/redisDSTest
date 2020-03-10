@@ -7,7 +7,8 @@ class RedisDataSource extends AbstractDataSource{
   
   private $server;
   private $cursor=-1;
-  private $pkeys = [1,2,3,4];
+  private $pkeys = [1,2,3,4,5];
+  private $primary_key='id';
   
   public function __construct(){
     $this->server = new \Redis();
@@ -22,7 +23,9 @@ class RedisDataSource extends AbstractDataSource{
     $this->server->hset($loc,2,json_encode(['id'=>2,'name'=>'terry','role'=>'d']));
     $this->server->hset($loc,3,json_encode(['id'=>3,'name'=>'frank','role'=>'a']));
     $this->server->hset($loc,4,json_encode(['id'=>4,'name'=>'jordi','role'=>'v']));
-
+    $this->server->hset($loc,5,json_encode(['id'=>5,'name'=>'jordi','role'=>'v']));
+    $this->server->hset($loc,6,json_encode(['id'=>6,'name'=>'jordi','role'=>'v']));
+    $this->buildMeta();
   }
   public function getOne(){
     
@@ -43,7 +46,6 @@ class RedisDataSource extends AbstractDataSource{
     
   }
   public function getMany():array{
-
     $results =[];
     $keepReading = true;
     $this->validateLocation();
@@ -94,11 +96,11 @@ class RedisDataSource extends AbstractDataSource{
   protected function getNextRecord():array{
     $this->cursor++;
     if(isset($this->pkeys[$this->cursor])){
-      return $this->readInRecord( $this->pkeys[$this->cursor] );
+      $r = $this->readInRecord( $this->pkeys[$this->cursor] );
+      return $r?$r:[];
     }else{
       return [];
     }
-    ##return ['id'=>1,'name'=>'bob','role'=>'a'];
   }
   protected function validateLocation(){
     
@@ -127,6 +129,35 @@ class RedisDataSource extends AbstractDataSource{
   private function readInRecord($key){
     $d = $this->server->hget($this->getLocation(),$key);
     return json_decode($d,true);
+  }
+  private function readInAllRecords(){
+    $d = $this->server->hgetAll($this->getLocation());
+    foreach($d as $k=>$v){
+      $d[$k] = json_decode($v,true);
+    }
+    return $d;
+  }
+  private function readInMeta(){
+    $d = $this->server->hget($this->getLocation(),'meta');
+    $meta = json_decode($d,true);
+  }
+  private function setMeta(array $meta){
+    $this->pkeys = isset($meta['pkeys'])?$meta['pkeys']:[];
+    
+  }
+  private function saveMeta($meta){
+    $this->server->hset($this->getLocation(),'meta',json_encode($meta) );
+    
+  }
+  private function buildMeta(){
+    $records = $this->readInAllRecords();
+    $meta['pkeys']=[];
+    foreach($records as $key=>$row){
+      if($key=='meta')continue;
+      $meta['pkeys'][]= $row[$this->primary_key];
+    }
+    $this->setMeta($meta);
+    $this->saveMeta($meta);
   }
 }
 /*
