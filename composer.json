@@ -1,0 +1,22 @@
+{
+    "name": "cabox/redis-php",
+    "require": {
+        "ext-redis": "*",
+        "ext-json": "*",
+        "procureplus/ppcore": "dev-PP-11085"
+    },
+   "repositories":[
+      {"type": "composer", "url": "https://repo.packagist.com/procureplus/"}
+    ],
+    "authors": [
+        {
+            "name": "mikebamber",
+            "email": "mikebamber@live.com"
+        }
+    ],
+      "autoload": {
+        "psr-4" : {
+            "RedisDataSource\\" : "src/"
+        }
+    }
+}
